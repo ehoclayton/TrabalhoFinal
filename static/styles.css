@@ -1,0 +1,138 @@
+/* static/styles.css */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+}
+
+nav {
+    background-color: #0288d1;
+    padding: 10px;
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+
+nav ul li {
+    margin-right: 15px;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.container {
+    width: 80%;
+    margin: 20px auto;
+    background-color: white;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h2, h3 {
+    color: #0288d1;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"] {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+button {
+    background-color: #0288d1;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #0277bd;
+}
+
+.alert {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+}
+
+.alert.success {
+    background-color: #c8e6c9;
+    color: #2e7d32;
+}
+
+.alert.danger {
+    background-color: #ffcdd2;
+    color: #c62828;
+}
+
+.alert.warning {
+    background-color: #ffe0b2;
+    color: #ef6c00;
+}
+
+.alert.info {
+    background-color: #bbdefb;
+    color: #0d47a1;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+a.btn {
+    display: inline-block;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background-color: #0288d1;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+a.btn:hover {
+    background-color: #0277bd;
+}
+
+form button {
+    margin-right: 5px;
+}

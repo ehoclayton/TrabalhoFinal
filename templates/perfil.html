@@ -1,0 +1,39 @@
+<!-- templates/perfil.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Bem-vindo, {{ user.primeiro_nome }}!</h2>
+<p><strong>Nome Completo:</strong> {{ user.primeiro_nome }} {{ user.ultimo_nome }}</p>
+<p><strong>E-mail:</strong> {{ user.email }}</p>
+
+<h3>Lançamentos</h3>
+<a href="{{ url_for('lancamentos') }}" class="btn">Adicionar Novo Lançamento</a>
+<table>
+    <thead>
+        <tr>
+            <th>Descrição</th>
+            <th>Valor</th>
+            <th>Data</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for lanc in lancamentos %}
+        <tr>
+            <td>{{ lanc.descricao }}</td>
+            <td>R$ {{ '%.2f'|format(lanc.valor) }}</td>
+            <td>{{ lanc.data }}</td>
+            <td>
+                <a href="{{ url_for('editar_lancamento', lancamento_id=lanc.id) }}">Editar</a>
+                <form method="POST" action="{{ url_for('excluir_lancamento_route', lancamento_id=lanc.id) }}" style="display:inline;">
+                    <button type="submit" onclick="return confirm('Tem certeza que deseja excluir este lançamento?');">Excluir</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4">Nenhum lançamento encontrado.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
