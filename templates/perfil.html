@@ -1,39 +1,54 @@
-<!-- templates/perfil.html -->
 {% extends "base.html" %}
 {% block content %}
-<h2>Bem-vindo, {{ user.primeiro_nome }}!</h2>
-<p><strong>Nome Completo:</strong> {{ user.primeiro_nome }} {{ user.ultimo_nome }}</p>
-<p><strong>E-mail:</strong> {{ user.email }}</p>
+<h1>Bem-vindo, {{ user['primeiro_nome'] }}!</h1>
+<p>Olá, {{ user['primeiro_nome'] }} {{ user['ultimo_nome'] }}. Sua conta está ativa desde {{ user['data_nascimento'] }}.</p>
 
-<h3>Lançamentos</h3>
-<a href="{{ url_for('lancamentos') }}" class="btn">Adicionar Novo Lançamento</a>
-<table>
+<h2>Seus Lançamentos</h2>
+<table class="table">
     <thead>
         <tr>
             <th>Descrição</th>
             <th>Valor</th>
             <th>Data</th>
+            <th>Tipo</th>
             <th>Ações</th>
         </tr>
     </thead>
     <tbody>
-        {% for lanc in lancamentos %}
+        {% for lancamento in lancamentos %}
         <tr>
-            <td>{{ lanc.descricao }}</td>
-            <td>R$ {{ '%.2f'|format(lanc.valor) }}</td>
-            <td>{{ lanc.data }}</td>
+            <td>{{ lancamento['descricao'] }}</td>
+            <td>R$ {{ lancamento['valor'] | round(2) }}</td>
+            <td>{{ lancamento['data_lancamento'] }}</td>
+            <td>{{ lancamento['tipo'] }}</td>
             <td>
-                <a href="{{ url_for('editar_lancamento', lancamento_id=lanc.id) }}">Editar</a>
-                <form method="POST" action="{{ url_for('excluir_lancamento_route', lancamento_id=lanc.id) }}" style="display:inline;">
-                    <button type="submit" onclick="return confirm('Tem certeza que deseja excluir este lançamento?');">Excluir</button>
+                <a href="{{ url_for('editar_lancamento', id=lancamento['id']) }}">Editar</a> 
+                |
+                <form action="{{ url_for('excluir_lancamento_route', lancamento_id=lancamento['id']) }}" method="POST" style="display:inline;">
+                    <button type="submit">Excluir</button>
                 </form>
             </td>
         </tr>
         {% else %}
         <tr>
-            <td colspan="4">Nenhum lançamento encontrado.</td>
+            <td colspan="5">Nenhum lançamento encontrado.</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+
+<br>
+<a href="{{ url_for('lancamentos') }}">Adicionar novo lançamento</a>
+
+<br><br>
+<a href="{{ url_for('logout') }}">Logout</a>
+
+<br><br>
+<!-- Botão para exportar relatório em Excel -->
+<form action="{{ url_for('exportar_relatorio_excel_route') }}" method="POST">
+    <button type="submit" class="btn btn-primary">Exportar Relatório em Excel</button>
+</form>
+
+
+
 {% endblock %}

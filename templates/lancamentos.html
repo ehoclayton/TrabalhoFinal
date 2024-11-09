@@ -14,8 +14,17 @@
     </div>
     
     <div class="form-group">
-        <label for="data">Data:</label>
-        <input type="date" id="data" name="data" required>
+        <label for="data_lancamento">Data de Lançamento:</label>
+        <input type="date" id="data_lancamento" name="data_lancamento" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="tipo">Tipo:</label>
+        <select id="tipo" name="tipo" required>
+            <option value="">Selecione</option>
+            <option value="Entrada">Entrada</option>
+            <option value="Saída">Saída</option>
+        </select>
     </div>
     
     <button type="submit">Salvar Lançamento</button>

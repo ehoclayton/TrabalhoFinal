@@ -1,7 +1,6 @@
-# app.py
-
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-import bcrypt
+import pandas as pd
+from io import BytesIO
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 from db import (
     verificar_login,
     salvar_usuario,
@@ -9,23 +8,69 @@ from db import (
     obter_lancamentos,
     salvar_lancamento,
     atualizar_lancamento,
-    excluir_lancamento
+    excluir_lancamento,
+    obter_lancamento_por_id,  # Função já definida para buscar o lançamento por ID
+    exportar_lancamentos_excel
 )
 from validacoes import validar_email, validar_senha
-import json
+import os
 
 app = Flask(__name__)
-app.secret_key = 'sua_chave_secreta_aqui'  # Substitua por uma chave secreta real e segura
+app.secret_key = os.urandom(24)  # Chave secreta para a sessão
 
-# Carregar configurações
-def carregar_configuracao():
-    try:
-        with open("config.json") as config_file:
-            config = json.load(config_file)
-            return config
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"Erro ao carregar configuração: {e}")
-        return None
+@app.route('/perfil')
+def perfil():
+    if 'user_id' not in session:
+        flash('Por favor, faça login primeiro.', 'warning')
+        return redirect(url_for('login'))
+    
+    user = obter_usuario_por_id(session['user_id'])
+    lancamentos = obter_lancamentos(session['user_id'])
+    return render_template('perfil.html', user=user, lancamentos=lancamentos)
+
+@app.route('/exportar_relatorio_excel', methods=['POST'])
+def exportar_relatorio_excel_route():
+    # Obtenha o user_id da sessão (se disponível)
+    user_id = session.get('user_id')
+    if not user_id:
+        flash("Você precisa estar logado para exportar o relatório.", "danger")
+        return redirect(url_for('login'))  # Substitua 'login' pela rota de login da sua aplicação
+    
+    # Obtenha os lançamentos do usuário
+    lancamentos = obter_lancamentos(user_id)  # Use sua função para pegar os lançamentos do usuário
+
+    # Converta os lançamentos em um DataFrame
+    df = pd.DataFrame(lancamentos)
+
+    # Verifique as colunas do DataFrame para entender sua estrutura
+    print(f"Colunas do DataFrame: {df.columns.tolist()}")  # Exibe as colunas para depuração
+
+    # Aqui, se seu DataFrame tem 5 colunas, ajuste os nomes para 5 colunas
+    if len(df.columns) == 5:
+        df.columns = ['id', 'usuario_id', 'descricao', 'valor', 'data_lancamento']
+    elif len(df.columns) == 4:  # Caso o DataFrame tenha 4 colunas
+        df.columns = ['descricao', 'valor', 'data_lancamento', 'tipo']
+    else:
+        flash("O número de colunas no DataFrame está incorreto.", "danger")
+        return redirect(url_for('home'))  # Redirecionar para uma página de erro ou outra página de sua escolha
+
+    # Renomeando para a estrutura de Excel (ajuste conforme necessário)
+    df = df.rename(columns={
+        'descricao': 'Descrição',
+        'valor': 'Valor',
+        'data_lancamento': 'Data',
+        'tipo': 'Tipo'
+    })
+
+    # Crie o arquivo Excel em memória
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:       
+        df.to_excel(writer, index=False, sheet_name='Lançamentos')
+
+    output.seek(0)
+
+    # Retorne o arquivo Excel como resposta para download
+    return send_file(output, as_attachment=True, download_name="relatorio_lancamentos.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 @app.route('/')
 def home():
@@ -88,28 +133,20 @@ def cadastro():
     
     return render_template('cadastro.html')
 
-@app.route('/perfil')
-def perfil():
-    if 'user_id' not in session:
-        flash('Por favor, faça login primeiro.', 'warning')
-        return redirect(url_for('login'))
-    
-    user = obter_usuario_por_id(session['user_id'])
-    lancamentos = obter_lancamentos(session['user_id'])
-    return render_template('perfil.html', user=user, lancamentos=lancamentos)
-
 @app.route('/lancamentos', methods=['GET', 'POST'])
 def lancamentos():
     if 'user_id' not in session:
         flash('Por favor, faça login primeiro.', 'warning')
         return redirect(url_for('login'))
     
+    user = obter_usuario_por_id(session['user_id'])  # Obter as informações do usuário
     if request.method == 'POST':
         descricao = request.form['descricao']
         valor = request.form['valor']
-        data = request.form['data']
+        data_lancamento = request.form['data_lancamento']
+        tipo = request.form['tipo']
         
-        if not descricao or not valor or not data:
+        if not descricao or not valor or not data_lancamento or not tipo:
             flash('Todos os campos são obrigatórios.', 'danger')
             return redirect(url_for('lancamentos'))
         
@@ -120,53 +157,49 @@ def lancamentos():
             return redirect(url_for('lancamentos'))
         
         try:
-            salvar_lancamento(session['user_id'], descricao, valor, data)
+            salvar_lancamento(session['user_id'], descricao, valor, data_lancamento, tipo)
             flash('Lançamento salvo com sucesso!', 'success')
             return redirect(url_for('perfil'))
         except Exception as e:
             flash(f'Erro ao salvar lançamento: {e}', 'danger')
             return redirect(url_for('lancamentos'))
     
-    return render_template('lancamentos.html')
+    return render_template('lancamentos.html', user=user)  # Passar 'user' para o template
 
-@app.route('/editar_lancamento/<int:lancamento_id>', methods=['GET', 'POST'])
-def editar_lancamento(lancamento_id):
+@app.route('/editar_lancamento/<int:id>', methods=['GET', 'POST'])
+def editar_lancamento(id):
     if 'user_id' not in session:
         flash('Por favor, faça login primeiro.', 'warning')
         return redirect(url_for('login'))
     
+    user = obter_usuario_por_id(session['user_id'])
+    lancamento = obter_lancamento_por_id(id)
+    
     if request.method == 'POST':
         descricao = request.form['descricao']
         valor = request.form['valor']
-        data = request.form['data']
+        data_lancamento = request.form['data_lancamento']
+        tipo = request.form['tipo']
         
-        if not descricao or not valor or not data:
+        if not descricao or not valor or not data_lancamento or not tipo:
             flash('Todos os campos são obrigatórios.', 'danger')
-            return redirect(url_for('editar_lancamento', lancamento_id=lancamento_id))
+            return redirect(url_for('editar_lancamento', id=id))
         
         try:
             valor = float(valor)
         except ValueError:
             flash('Valor inválido.', 'danger')
-            return redirect(url_for('editar_lancamento', lancamento_id=lancamento_id))
+            return redirect(url_for('editar_lancamento', id=id))
         
         try:
-            atualizar_lancamento(lancamento_id, descricao, valor, data)
+            atualizar_lancamento(id, descricao, valor, data_lancamento, tipo)
             flash('Lançamento atualizado com sucesso!', 'success')
             return redirect(url_for('perfil'))
         except Exception as e:
             flash(f'Erro ao atualizar lançamento: {e}', 'danger')
-            return redirect(url_for('editar_lancamento', lancamento_id=lancamento_id))
+            return redirect(url_for('editar_lancamento', id=id))
     
-    # Obter detalhes do lançamento para exibir no formulário
-    lancamentos = obter_lancamentos(session['user_id'])
-    lancamento = next((l for l in lancamentos if l['id'] == lancamento_id), None)
-    
-    if not lancamento:
-        flash('Lançamento não encontrado.', 'danger')
-        return redirect(url_for('perfil'))
-    
-    return render_template('editar_lancamento.html', lancamento=lancamento)
+    return render_template('editar_lancamento.html', lancamento=lancamento, user=user)
 
 @app.route('/excluir_lancamento/<int:lancamento_id>', methods=['POST'])
 def excluir_lancamento_route(lancamento_id):
@@ -185,7 +218,7 @@ def excluir_lancamento_route(lancamento_id):
 @app.route('/logout')
 def logout():
     session.clear()
-    flash('Você foi deslogado com sucesso.', 'info')
+    flash('Você foi desconectado.', 'info')
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
